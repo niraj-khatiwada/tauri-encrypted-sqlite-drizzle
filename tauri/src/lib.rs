@@ -10,23 +10,17 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
-            let db_path = match fs::setup_db_dir(app) {
-                Ok(mut path) => {
-                    path.push("db.sqlite");
-                    path
-                }
-                Err(err) => panic!("{}", err),
-            };
+            let db_path = fs::setup_db_dir(app).unwrap_or_else(|err| panic!("{}", err));
 
-            println!(">> {:?}", db_path);
+            let password = "super_secret_password"; // TODO: Store this somewhere safe or ask the user
 
-            let db = match tauri::async_runtime::block_on(db::Database::new(
-                &db_path,
-                "super_secret_password",
-            )) {
-                Ok(ok) => ok,
-                Err(err) => panic!("{}", err),
-            };
+            let db = tauri::async_runtime::block_on(db::Database::new(password, &db_path, None))
+                .unwrap_or_else(|err| panic!("{}", err));
+
+            println!(
+                "is connected {}",
+                tauri::async_runtime::block_on(db.is_connected())
+            );
 
             let app_state = AppState {
                 db: Arc::new(db.get_pool().clone()),
