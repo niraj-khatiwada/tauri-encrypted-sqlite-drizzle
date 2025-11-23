@@ -8,12 +8,12 @@ use sqlx::{
 pub type DatabaseDialect = sqlx::Sqlite;
 pub type DatabasePool = sqlx::Pool<DatabaseDialect>;
 
-pub struct Database<D: sqlx::Database> {
+pub struct Database {
     db_name: String,
-    pool: sqlx::Pool<D>,
+    pool: DatabasePool,
 }
 
-impl Database<DatabaseDialect> {
+impl Database {
     #[cfg(debug_assertions)]
     const DEFAULT_DB_NAME: &'static str = "app_dev.db";
     #[cfg(not(debug_assertions))]

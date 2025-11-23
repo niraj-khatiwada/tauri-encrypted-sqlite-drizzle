@@ -1,3 +1,4 @@
+pub mod commands;
 pub mod db;
 pub mod domain;
 pub mod fs;
@@ -22,14 +23,12 @@ pub fn run() {
                 tauri::async_runtime::block_on(db.is_connected())
             );
 
-            let app_state = AppState {
-                db: Arc::new(db.get_pool().clone()),
-            };
+            let app_state = AppState { db: Arc::new(db) };
             app.manage(app_state);
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![])
+        .invoke_handler(tauri::generate_handler![commands::is_db_connected])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|app_handle, event| {});
