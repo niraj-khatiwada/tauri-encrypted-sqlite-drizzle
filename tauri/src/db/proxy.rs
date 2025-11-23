@@ -56,26 +56,31 @@ fn sqlx_value_to_json(row: &SqliteRow, index: usize) -> Value {
     let type_name = col.type_info().name();
 
     match type_name {
-        "INTEGER" => row
-            .try_get::<i64, _>(index)
-            .map(Value::from)
-            .unwrap_or(Value::Null),
-        "REAL" => row
-            .try_get::<f64, _>(index)
-            .map(Value::from)
-            .unwrap_or(Value::Null),
-        "TEXT" => row
-            .try_get::<String, _>(index)
-            .map(Value::String)
-            .unwrap_or(Value::Null),
-        "BLOB" => row
-            .try_get::<Vec<u8>, _>(index)
-            .map(|bytes| Value::String(general_purpose::STANDARD.encode(&bytes)))
-            .unwrap_or(Value::Null),
-        _ => row
-            .try_get::<String, _>(index)
-            .map(Value::String)
-            .unwrap_or(Value::Null),
+        "INTEGER" => match row.try_get::<Option<i64>, _>(index) {
+            Ok(Some(i)) => Value::from(i),
+            Ok(None) => Value::Null,
+            Err(_) => Value::Null,
+        },
+        "REAL" => match row.try_get::<Option<f64>, _>(index) {
+            Ok(Some(f)) => Value::from(f),
+            Ok(None) => Value::Null,
+            Err(_) => Value::Null,
+        },
+        "TEXT" => match row.try_get::<Option<String>, _>(index) {
+            Ok(Some(s)) => Value::String(s),
+            Ok(None) => Value::Null,
+            Err(_) => Value::Null,
+        },
+        "BLOB" => match row.try_get::<Option<Vec<u8>>, _>(index) {
+            Ok(Some(bytes)) => Value::String(general_purpose::STANDARD.encode(&bytes)),
+            Ok(None) => Value::Null,
+            Err(_) => Value::Null,
+        },
+        _ => match row.try_get::<Option<String>, _>(index) {
+            Ok(Some(s)) => Value::String(s),
+            Ok(None) => Value::Null,
+            Err(_) => Value::Null,
+        },
     }
 }
 

@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 
 import { db } from '~/db'
 import { todo } from '~/db/schema'
+import user from '~/db/schema/user'
 import Logo from '../../logo.svg'
 
 export const Route = createFileRoute('/(root)/')({
@@ -13,28 +14,36 @@ export const Route = createFileRoute('/(root)/')({
 function App() {
   const { data } = useQuery({
     queryKey: ['users'],
-    queryFn: () => db.query.todo.findMany(),
+    queryFn: () =>
+      db
+        .select()
+        .from(todo)
+        .innerJoin(user, eq(todo.user_id, user.id))
+        .limit(1)
+        .get(),
   })
-
   return (
     <>
       <div className="h-screen w-screen flex items-center justify-center flex-col">
         <img src={Logo} alt="logo" width={200} />
         <h1 className="text-white text-3xl font-bold">Tauri + SQLite</h1>
+        <pre className="text-white">
+          <code>{JSON.stringify(data, null, 2)}</code>
+        </pre>
         <button
           type="button"
           className="border px-2 text-white"
           onClick={async () => {
-            const res = await db
-              .insert(todo)
-              .values({ title: 'Lol' })
+            const newUser = await db
+              .insert(user)
+              .values({ name: 'niraj' })
               .returning()
-            console.log('res', res)
+            console.log('newUser', newUser)
             db.batch([
-              db.insert(todo).values({ title: 'Niraj' }).returning(),
-              db.insert(todo).values({ title: 'Hello' }).returning(),
-              db.query.todo.findFirst({ where: eq(todo.title, 'Niraj') }),
-              db.insert(todo).values({ title: 'Hello' }).returning(),
+              db
+                .insert(todo)
+                .values({ title: 'Niraj', user_id: newUser[0].id })
+                .returning(),
             ])
               .then((res) => {
                 console.log('res>>', res)
