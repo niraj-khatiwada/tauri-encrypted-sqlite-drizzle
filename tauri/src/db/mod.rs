@@ -1,9 +1,13 @@
+pub mod migration;
+pub mod proxy;
 use std::{path::PathBuf, str::FromStr};
 
 use sqlx::{
     self,
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
 };
+
+use crate::db::migration::Migration;
 
 pub type DatabaseDialect = sqlx::Sqlite;
 pub type DatabasePool = sqlx::Pool<DatabaseDialect>;
@@ -18,8 +22,6 @@ impl Database {
     const DEFAULT_DB_NAME: &'static str = "app_dev.db";
     #[cfg(not(debug_assertions))]
     const DEFAULT_DB_NAME: &'static str = "app.db";
-
-    const DEFAULT_TABLE_NAME: &'static str = "__public__";
 
     pub async fn new(
         password: &str,
@@ -40,8 +42,7 @@ impl Database {
             .await
             .map_err(|err| err.to_string())?;
 
-        // Insert a default table to make sure encryption works on db initialization
-        Self::setup_default_table(&pool)
+        Migration::setup_migration_table(&pool)
             .await
             .map_err(|err| err.to_string())?;
 
@@ -51,7 +52,7 @@ impl Database {
         })
     }
 
-    pub fn get_pool(&self) -> &sqlx::Pool<DatabaseDialect> {
+    pub fn get_pool(&self) -> &DatabasePool {
         return &self.pool;
     }
 
@@ -59,11 +60,11 @@ impl Database {
         self.db_name.clone()
     }
 
-    pub async fn is_connected(&self) -> bool {
+    pub async fn is_ready(&self) -> bool {
         let row: Option<i32> = sqlx::query_scalar(
             format!(
                 "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='{}';",
-                Self::DEFAULT_TABLE_NAME
+                Migration::MIGRATION_TABLE_NAME
             )
             .as_str(),
         )
@@ -75,19 +76,5 @@ impl Database {
             return count == 1;
         }
         false
-    }
-
-    async fn setup_default_table(pool: &sqlx::Pool<DatabaseDialect>) -> Result<(), String> {
-        sqlx::query(
-            format!(
-                "CREATE TABLE IF NOT EXISTS {}(id INTEGER PRIMARY KEY);",
-                Self::DEFAULT_TABLE_NAME
-            )
-            .as_str(),
-        )
-        .execute(pool)
-        .await
-        .map_err(|err| err.to_string())?;
-        Ok(())
     }
 }

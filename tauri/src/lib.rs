@@ -4,7 +4,7 @@ pub mod domain;
 pub mod fs;
 use domain::AppState;
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{path::BaseDirectory, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,17 +18,19 @@ pub fn run() {
             let db = tauri::async_runtime::block_on(db::Database::new(password, &db_path, None))
                 .unwrap_or_else(|err| panic!("{}", err));
 
-            println!(
-                "is connected {}",
-                tauri::async_runtime::block_on(db.is_connected())
-            );
+            let migration_dir = app.path().resolve("migrations", BaseDirectory::Resource)?;
+            let migration = db::migration::Migration::new(db.get_pool(), migration_dir);
+            tauri::async_runtime::block_on(migration.run()).unwrap_or_else(|err| panic!("{}", err));
 
             let app_state = AppState { db: Arc::new(db) };
             app.manage(app_state);
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![commands::is_db_connected])
+        .invoke_handler(tauri::generate_handler![
+            commands::is_db_ready,
+            db::proxy::execute_single_sql
+        ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|app_handle, event| {});
