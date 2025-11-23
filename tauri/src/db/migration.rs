@@ -11,7 +11,7 @@ pub struct Migration {
 }
 
 impl Migration {
-    pub const MIGRATION_TABLE_NAME: &'static str = "__migrations__";
+    pub const MIGRATION_TABLE_NAME: &'static str = "__migration__";
 
     pub fn new(pool: DatabasePool, migrations_dir: PathBuf) -> Self {
         Self {
