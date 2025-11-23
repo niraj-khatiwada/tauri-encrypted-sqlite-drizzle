@@ -32,5 +32,12 @@
   "editor.codeActionsOnSave": {
     "source.organizeImports.biome": "explicit"
   },
-  "cSpell.words": ["Elysia", "jsonwebtoken", "sqlx", "zeroize"]
+  "cSpell.words": [
+    "AUTOINCREMENT",
+    "Elysia",
+    "jsonwebtoken",
+    "sqlparser",
+    "sqlx",
+    "zeroize"
+  ]
 }
