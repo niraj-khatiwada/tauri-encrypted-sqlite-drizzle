@@ -2,32 +2,24 @@ use crate::domain::AppState;
 use base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::{sqlite::SqliteRow, Column, Row, TypeInfo};
+use sqlx::{sqlite::SqliteRow, Column, Row, Sqlite, Transaction, TypeInfo};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SQLQuery {
     pub sql: String,
-    pub params: Vec<serde_json::Value>,
+    pub params: Vec<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SQLRow {
     pub columns: Vec<String>,
-    pub rows: Vec<serde_json::Value>,
+    pub rows: Vec<Value>,
 }
 
-#[tauri::command]
-pub async fn execute_single_sql(
-    app_state: tauri::State<'_, AppState>,
-    query: SQLQuery,
-) -> Result<Vec<SQLRow>, String> {
-    let db = app_state.db.clone();
-
-    let sql = query.sql.as_str();
-    let params = query.params;
-
-    let mut query = sqlx::query(sql);
-
+fn bind_params<'a>(
+    mut query: sqlx::query::Query<'a, Sqlite, sqlx::sqlite::SqliteArguments<'a>>,
+    params: &'a [Value],
+) -> sqlx::query::Query<'a, Sqlite, sqlx::sqlite::SqliteArguments<'a>> {
     for p in params {
         match p {
             Value::String(s) => query = query.bind(s),
@@ -36,35 +28,32 @@ pub async fn execute_single_sql(
                     query = query.bind(i);
                 } else if let Some(f) = n.as_f64() {
                     query = query.bind(f);
+                } else {
+                    query = query.bind(None::<String>);
                 }
             }
-            Value::Bool(b) => query = query.bind(b),
+            Value::Bool(b) => query = query.bind(*b),
+            Value::Null => query = query.bind(None::<String>),
             _ => query = query.bind(None::<String>),
         }
     }
 
-    let rows = query.fetch_all(&db.pool).await.map_err(|e| e.to_string())?;
-    let rows = rows
-        .iter()
-        .map(|row| {
-            let columns: Vec<String> = row.columns().iter().map(|c| c.name().to_string()).collect();
-            let rows = (0..row.len())
-                .map(|i| match row.try_get_raw(i) {
-                    Ok(_) => sqlx_value_to_json(row, i),
-                    Err(_) => Value::Null,
-                })
-                .collect();
+    query
+}
 
-            SQLRow { columns, rows }
-        })
-        .collect();
+fn row_to_sql_row(row: &SqliteRow) -> SQLRow {
+    let columns: Vec<String> = row.columns().iter().map(|c| c.name().to_string()).collect();
+    let values: Vec<Value> = (0..row.len()).map(|i| sqlx_value_to_json(row, i)).collect();
 
-    Ok(rows)
+    SQLRow {
+        columns,
+        rows: values,
+    }
 }
 
 fn sqlx_value_to_json(row: &SqliteRow, index: usize) -> Value {
-    let column = row.column(index);
-    let type_name = column.type_info().name();
+    let col = row.column(index);
+    let type_name = col.type_info().name();
 
     match type_name {
         "INTEGER" => row
@@ -88,4 +77,48 @@ fn sqlx_value_to_json(row: &SqliteRow, index: usize) -> Value {
             .map(Value::String)
             .unwrap_or(Value::Null),
     }
+}
+
+#[tauri::command]
+pub async fn execute_single_sql(
+    app_state: tauri::State<'_, AppState>,
+    query: SQLQuery,
+) -> Result<Vec<SQLRow>, String> {
+    let db = app_state.db.clone();
+
+    let mut q = sqlx::query(query.sql.as_str());
+    q = bind_params(q, &query.params);
+
+    let rows = q.fetch_all(&db.pool).await.map_err(|e| e.to_string())?;
+
+    Ok(rows.iter().map(row_to_sql_row).collect())
+}
+
+#[tauri::command]
+pub async fn execute_batch_sql(
+    app_state: tauri::State<'_, AppState>,
+    queries: Vec<SQLQuery>,
+) -> Result<Vec<Vec<SQLRow>>, String> {
+    let db = app_state.db.clone();
+
+    let mut tx: Transaction<'_, Sqlite> = db.pool.begin().await.map_err(|e| e.to_string())?;
+
+    let mut results: Vec<Vec<SQLRow>> = vec![];
+
+    for query in queries {
+        let mut q = sqlx::query(query.sql.as_str());
+        q = bind_params(q, &query.params);
+
+        let rows = q
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(|e| format!("Error executing '{}': {}", query.sql, e))?;
+
+        let converted: Vec<SQLRow> = rows.iter().map(row_to_sql_row).collect();
+        results.push(converted);
+    }
+
+    tx.commit().await.map_err(|e| e.to_string())?;
+
+    Ok(results)
 }

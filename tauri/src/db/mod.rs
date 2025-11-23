@@ -35,6 +35,9 @@ impl Database {
             SqliteConnectOptions::from_str(&db_url.to_str().ok_or("Invalid db path")?)
                 .map_err(|err| err.to_string())?
                 .pragma("key", password.to_string())
+                .pragma("journal_mode", "WAL".to_string())
+                .pragma("synchronous", "NORMAL".to_string())
+                .pragma("busy_timeout", "5000".to_string())
                 .create_if_missing(true);
 
         let pool = SqlitePoolOptions::new()

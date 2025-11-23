@@ -5,15 +5,15 @@ use std::path::{Path, PathBuf};
 
 use crate::db::DatabasePool;
 
-pub struct Migration<'a> {
-    pool: &'a DatabasePool,
+pub struct Migration {
+    pool: DatabasePool,
     migrations_dir: PathBuf,
 }
 
-impl<'a> Migration<'a> {
+impl Migration {
     pub const MIGRATION_TABLE_NAME: &'static str = "__migrations__";
 
-    pub fn new(pool: &'a DatabasePool, migrations_dir: PathBuf) -> Self {
+    pub fn new(pool: DatabasePool, migrations_dir: PathBuf) -> Self {
         Self {
             pool,
             migrations_dir,
@@ -106,7 +106,7 @@ impl<'a> Migration<'a> {
         let res: Option<(i64,)> =
             sqlx::query_as("SELECT id FROM __migrations__ WHERE name = ? LIMIT 1;")
                 .bind(name)
-                .fetch_optional(self.pool)
+                .fetch_optional(&self.pool)
                 .await
                 .map_err(|e| e.to_string())?;
 

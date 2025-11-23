@@ -3,6 +3,8 @@ pub mod db;
 pub mod domain;
 pub mod fs;
 use domain::AppState;
+#[cfg(debug_assertions)]
+use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{path::BaseDirectory, Manager};
 
@@ -18,8 +20,12 @@ pub fn run() {
             let db = tauri::async_runtime::block_on(db::Database::new(password, &db_path, None))
                 .unwrap_or_else(|err| panic!("{}", err));
 
+            #[cfg(not(debug_assertions))]
             let migration_dir = app.path().resolve("migrations", BaseDirectory::Resource)?;
-            let migration = db::migration::Migration::new(db.get_pool(), migration_dir);
+            #[cfg(debug_assertions)]
+            let migration_dir = PathBuf::new().join("migrations");
+
+            let migration = db::migration::Migration::new(db.get_pool().clone(), migration_dir);
             tauri::async_runtime::block_on(migration.run()).unwrap_or_else(|err| panic!("{}", err));
 
             let app_state = AppState { db: Arc::new(db) };
@@ -29,9 +35,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::is_db_ready,
-            db::proxy::execute_single_sql
+            db::proxy::execute_single_sql,
+            db::proxy::execute_batch_sql,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
-        .run(|app_handle, event| {});
+        .run(|_app_handle, _event| {});
 }
