@@ -1,10 +1,13 @@
 import { Alert, Button, cn, Input, Label, Spinner } from '@heroui/react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { preventRouteBeforeLoad } from '~/utils/router'
-import { initDb } from '~/utils/tauri-commands'
+import {
+  doesDbExist as doesDbExistCommand,
+  initDb,
+} from '~/utils/tauri-commands'
 
 export const Route = createFileRoute('/(root)/auth')({
   component: RouteComponent,
@@ -15,9 +18,15 @@ function RouteComponent() {
   const navigate = useNavigate()
   const [key, setKey] = useState('')
 
+  const { data: doesDbExist, refetch } = useQuery({
+    queryKey: ['doesDbExist'],
+    queryFn: doesDbExistCommand,
+  })
+
   const { mutate, isPending, error, reset } = useMutation({
     mutationFn: async (encryptionKey: string) => await initDb(encryptionKey),
-    onSettled() {
+    async onSettled() {
+      await refetch()
       navigate({ to: '/' })
     },
   })
@@ -35,7 +44,7 @@ function RouteComponent() {
         </Label>
         <Input
           id="master-password"
-          placeholder="Enter your encryption key..."
+          placeholder={`${doesDbExist ? 'Enter your' : 'Set a new'} encryption key...`}
           type="password"
           disabled={isPending}
           value={key}
@@ -46,30 +55,37 @@ function RouteComponent() {
         />
         <Button
           size="sm"
-          className="w-full my-4 rounded-xl"
+          className={cn(
+            'w-full my-4 rounded-xl',
+            !doesDbExist ? 'bg-success' : 'bg-blue-500',
+          )}
           isDisabled={isPending || key.length === 0}
           isPending={isPending}
           type="submit"
+          variant="ghost"
         >
           {({ isPending }) => (
             <>
               {isPending ? <Spinner color="current" size="sm" /> : null}
-              Unlock{isPending ? 'ing...' : ''}
+              {doesDbExist ? 'Unlock' : 'Register'}
+              {isPending ? 'ing...' : ''}
             </>
           )}
         </Button>
-        <Alert
-          status="warning"
-          className={cn(
-            'py-2 px-3 gap-2 items-center',
-            key.length === 0 ? 'opacity-0' : 'opacity-90',
-          )}
-        >
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Make sure to remember this key.</Alert.Title>
-          </Alert.Content>
-        </Alert>
+        {!doesDbExist ? (
+          <Alert
+            status="warning"
+            className={cn(
+              'py-2 px-3 gap-2 items-center',
+              key.length === 0 ? 'opacity-0' : 'opacity-90',
+            )}
+          >
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>Make sure to remember this key.</Alert.Title>
+            </Alert.Content>
+          </Alert>
+        ) : null}
 
         {error ? (
           <Alert status="danger" className="my-2">

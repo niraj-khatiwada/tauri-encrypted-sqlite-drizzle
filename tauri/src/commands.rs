@@ -4,6 +4,11 @@ use crate::{
 };
 
 #[tauri::command]
+pub async fn does_db_exist(app_state: tauri::State<'_, AppState>) -> Result<bool, String> {
+    Ok(app_state.db_dir.join(Database::DEFAULT_DB_NAME).exists())
+}
+
+#[tauri::command]
 pub async fn is_db_ready(app_state: tauri::State<'_, AppState>) -> Result<bool, String> {
     let db_lock = app_state.db.read().await;
     let db = match db_lock.as_ref() {

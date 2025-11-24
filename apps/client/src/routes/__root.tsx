@@ -1,5 +1,5 @@
 import { Alert, AlertDialog, Button, Spinner } from '@heroui/react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createRootRoute,
   Outlet,
@@ -33,6 +33,7 @@ function Reset() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
+  const queryClient = useQueryClient()
   const { data: isAuthenticated, refetch } = useQuery({
     queryKey: ['isDbReady', pathname],
     queryFn: isDbReady,
@@ -41,12 +42,16 @@ function Reset() {
   const { mutate, isPending, error } = useMutation({
     mutationFn: resetDb,
     async onSettled() {
+      await queryClient.resetQueries({ queryKey: ['doesDbExist'] })
       await refetch()
       navigate({ to: '/auth' })
     },
+    async onSuccess() {
+      queryClient.clear()
+    },
   })
   return (
-    <div className="fixed top-4 left-4 flex gap-2">
+    <div className="fixed top-4 right-4 flex gap-2">
       <AlertDialog>
         <Button size="sm" variant="danger-soft">
           Reset

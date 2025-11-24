@@ -1,5 +1,9 @@
 import { core } from '@tauri-apps/api'
 
+export async function doesDbExist() {
+  return await core.invoke<Promise<boolean>>('does_db_exist')
+}
+
 export async function isDbReady() {
   return await core.invoke<Promise<boolean>>('is_db_ready')
 }

@@ -33,6 +33,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::does_db_exist,
             commands::is_db_ready,
             commands::init_db,
             commands::reset_db,

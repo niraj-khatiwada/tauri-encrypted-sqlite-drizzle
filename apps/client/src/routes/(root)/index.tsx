@@ -51,7 +51,7 @@ function App() {
             //     console.error(err)
             //     console.dir(err)
             //   })
-            for (const _ in new Array(1000).fill(0)) {
+            for (const _ in new Array(10000).fill(0)) {
               const userId = uuid()
               await db.batch([
                 db
