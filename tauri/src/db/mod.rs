@@ -18,9 +18,6 @@ pub struct Database {
 }
 
 impl Database {
-    #[cfg(debug_assertions)]
-    const DEFAULT_DB_NAME: &'static str = "app_dev.db";
-    #[cfg(not(debug_assertions))]
     const DEFAULT_DB_NAME: &'static str = "app.db";
 
     pub async fn new(

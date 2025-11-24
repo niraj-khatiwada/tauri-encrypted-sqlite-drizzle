@@ -103,12 +103,14 @@ impl Migration {
     }
 
     async fn is_migration_applied(&self, name: &str) -> Result<bool, String> {
-        let res: Option<(i64,)> =
-            sqlx::query_as("SELECT id FROM __migrations__ WHERE name = ? LIMIT 1;")
-                .bind(name)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| e.to_string())?;
+        let res: Option<(i64,)> = sqlx::query_as(&format!(
+            "SELECT id FROM {} WHERE name = ? LIMIT 1;",
+            Migration::MIGRATION_TABLE_NAME
+        ))
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
         Ok(res.is_some())
     }
@@ -127,11 +129,14 @@ impl Migration {
                 .map_err(|e| format!("{}: {}", name, e))?;
         }
 
-        sqlx::query("INSERT INTO __migrations__ (name) VALUES (?)")
-            .bind(name)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| e.to_string())?;
+        sqlx::query(&format!(
+            "INSERT INTO {} (name) VALUES (?)",
+            Self::MIGRATION_TABLE_NAME
+        ))
+        .bind(name)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
 
         tx.commit().await.map_err(|e| e.to_string())?;
 

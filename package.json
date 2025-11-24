@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": ["apps/*"],
   "scripts": {
-    "tauri:dev": "tauri dev",
+    "tauri:dev": "tauri dev --config tauri/tauri.dev.conf.json",
     "tauri:build": "tauri build",
     "tauri:build:debug": "tauri build --debug",
     "build:apps": "bun run --filter client build",

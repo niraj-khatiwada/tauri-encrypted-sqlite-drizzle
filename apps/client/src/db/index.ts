@@ -53,7 +53,7 @@ export const db = drizzle(
 
 function mapRows(rows: Row[], method: Method) {
   if (rows.length === 0 && method === 'get') {
-    return {} as { rows: string[] }
+    return {} as { rows: [] }
   }
   return {
     rows: method === 'get' ? rows[0].rows : rows.map((r) => r.rows),

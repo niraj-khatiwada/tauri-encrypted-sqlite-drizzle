@@ -84,11 +84,57 @@ fn sqlx_value_to_json(row: &SqliteRow, index: usize) -> Value {
     }
 }
 
+fn log_sql_proxy(single: Option<&SQLQuery>, batch: Option<&[SQLQuery]>) {
+    if let Some(query) = single {
+        println!(
+            "[proxy] Single SQL: {}; PARAMS: {:?}",
+            query.sql,
+            query
+                .params
+                .iter()
+                .map(|p| serde_json::to_string_pretty(&p.to_string()))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    if let Some(queries) = batch {
+        println!(
+            "[proxy] Batch SQL: {} queries\n{}",
+            queries.len(),
+            queries
+                .iter()
+                .map(|q| format!(
+                    "SQL: {}; PARAMS: {:?}",
+                    q.sql,
+                    q.params
+                        .iter()
+                        .map(|p| serde_json::to_string_pretty(&p.to_string()))
+                        .collect::<Vec<_>>()
+                ))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+    }
+}
+
 #[tauri::command]
 pub async fn execute_single_sql(
     app_state: tauri::State<'_, AppState>,
     query: SQLQuery,
 ) -> Result<Vec<SQLRow>, String> {
+    #[cfg(debug_assertions)]
+    log_sql_proxy(Some(&query), None);
+
+    let sql_upper = query.sql.trim().to_uppercase();
+    if sql_upper.starts_with("BEGIN")
+        || sql_upper.starts_with("COMMIT")
+        || sql_upper.starts_with("ROLLBACK")
+    {
+        return Err(
+            "BEGIN/COMMIT/ROLLBACK not allowed in single SQL execution. Use batch execution instead.".into(),
+        );
+    }
+
     let db = app_state.db.clone();
 
     let mut q = sqlx::query(query.sql.as_str());
@@ -104,6 +150,9 @@ pub async fn execute_batch_sql(
     app_state: tauri::State<'_, AppState>,
     queries: Vec<SQLQuery>,
 ) -> Result<Vec<Vec<SQLRow>>, String> {
+    #[cfg(debug_assertions)]
+    log_sql_proxy(None, Some(&queries));
+
     let db = app_state.db.clone();
 
     let mut tx: Transaction<'_, Sqlite> = db.pool.begin().await.map_err(|e| e.to_string())?;
