@@ -7,3 +7,9 @@ export async function isDbReady() {
 export async function initDb(encryptionKey: string) {
   return await core.invoke<Promise<void>>('init_db', { encryptionKey })
 }
+
+export async function resetDb(purgeData: boolean) {
+  return await core.invoke<Promise<void>>('reset_db', {
+    purgeData,
+  })
+}

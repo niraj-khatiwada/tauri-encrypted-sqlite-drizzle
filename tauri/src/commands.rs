@@ -1,4 +1,7 @@
-use crate::{db, domain::AppState};
+use crate::{
+    db::{self, Database},
+    domain::AppState,
+};
 
 #[tauri::command]
 pub async fn is_db_ready(app_state: tauri::State<'_, AppState>) -> Result<bool, String> {
@@ -23,7 +26,6 @@ pub async fn init_db(
     }
 
     let db = db::Database::new(encryption_key, app_state.db_dir.clone(), None).await?;
-
     let migration =
         db::migration::Migration::new(db.get_pool().clone(), app_state.migration_dir.clone());
     migration.run().await?;
@@ -31,5 +33,33 @@ pub async fn init_db(
     let mut db_state = app_state.db.write().await;
     *db_state = Some(db);
 
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn reset_db(
+    app_state: tauri::State<'_, AppState>,
+    purge_data: bool,
+) -> Result<(), String> {
+    {
+        let mut lock = app_state.db.write().await;
+        match lock.take() {
+            Some(db) => {
+                if purge_data {
+                    match db.reset().await {
+                        Ok(_) => return Ok(()),
+                        Err(err) => return Err(err.to_string()),
+                    }
+                } else {
+                    db.close_pool().await
+                }
+            }
+            _ => {}
+        }
+    };
+
+    if purge_data {
+        Database::purge_data(&app_state.db_dir)?;
+    }
     Ok(())
 }

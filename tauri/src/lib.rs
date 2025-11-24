@@ -35,6 +35,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::is_db_ready,
             commands::init_db,
+            commands::reset_db,
             db::proxy::execute_single_sql,
             db::proxy::execute_batch_sql,
         ])

@@ -13,12 +13,13 @@ pub type DatabaseDialect = sqlx::Sqlite;
 pub type DatabasePool = sqlx::Pool<DatabaseDialect>;
 
 pub struct Database {
+    db_dir: PathBuf,
     db_name: String,
     pool: DatabasePool,
 }
 
 impl Database {
-    const DEFAULT_DB_NAME: &'static str = "app.db";
+    pub const DEFAULT_DB_NAME: &'static str = "app.db";
 
     pub async fn new(
         password: &str,
@@ -48,12 +49,17 @@ impl Database {
 
         Ok(Self {
             pool: pool,
+            db_dir: db_dir,
             db_name: String::from(db_name),
         })
     }
 
     pub fn get_pool(&self) -> &DatabasePool {
         return &self.pool;
+    }
+
+    pub async fn close_pool(&self) {
+        self.pool.close().await
     }
 
     pub fn get_db_name(&self) -> String {
@@ -76,5 +82,28 @@ impl Database {
             return count == 1;
         }
         false
+    }
+
+    pub async fn reset(&self) -> Result<(), String> {
+        self.close_pool().await;
+        Self::purge_data(&self.db_dir)?;
+        Ok(())
+    }
+
+    pub fn purge_data(db_dir: &PathBuf) -> Result<(), String> {
+        let entries =
+            std::fs::read_dir(db_dir).map_err(|e| format!("Failed to read db directory: {}", e))?;
+        for entry in entries {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+
+            if let Some(fname) = path.file_name().and_then(|n| n.to_str()) {
+                if fname.starts_with(Database::DEFAULT_DB_NAME) {
+                    std::fs::remove_file(&path)
+                        .map_err(|e| format!("Failed to delete {}: {}", fname, e))?;
+                }
+            }
+        }
+        Ok(())
     }
 }

@@ -15,7 +15,7 @@ function RouteComponent() {
   const navigate = useNavigate()
   const [key, setKey] = useState('')
 
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending, error, reset } = useMutation({
     mutationFn: async (encryptionKey: string) => await initDb(encryptionKey),
     onSettled() {
       navigate({ to: '/' })
@@ -39,7 +39,10 @@ function RouteComponent() {
           type="password"
           disabled={isPending}
           value={key}
-          onChange={(e) => setKey(e.target.value)}
+          onChange={(e) => {
+            reset()
+            setKey(e.target.value)
+          }}
         />
         <Button
           size="sm"
@@ -64,12 +67,27 @@ function RouteComponent() {
         >
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>
-              Make sure to remember this key. You'll be asked to enter this when
-              required.
-            </Alert.Title>
+            <Alert.Title>Make sure to remember this key.</Alert.Title>
           </Alert.Content>
         </Alert>
+
+        {error ? (
+          <Alert status="danger" className="my-2">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>
+                Unable to connect to connect to the database.
+              </Alert.Title>
+              <Alert.Description>
+                {error.message ?? JSON.stringify(error ?? '')}
+              </Alert.Description>
+              <Alert.Description className="my-2 text-danger">
+                If you forgot the encryption key, you need to reset the
+                database.
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
+        ) : null}
       </form>
     </div>
   )

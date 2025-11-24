@@ -14,3 +14,10 @@ pub fn setup_db_dir(app: &mut tauri::App) -> Result<PathBuf, tauri::Error> {
 
     Ok(PathBuf::from(db_dir))
 }
+
+pub fn delete_file_if_exists(path: &PathBuf) -> Result<(), String> {
+    if path.exists() {
+        fs::remove_file(path).map_err(|e| format!("Failed to delete {}: {}", path.display(), e))?;
+    }
+    Ok(())
+}
