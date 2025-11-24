@@ -9,7 +9,8 @@ pub fn setup_db_dir(app: &mut tauri::App) -> Result<PathBuf, tauri::Error> {
     let app_data_directory = app.path().app_data_dir()?;
     scope.allow_directory(&app_data_directory, true)?;
 
-    fs::create_dir_all(format!("{}", &app_data_directory.display().to_string()))?;
+    let db_dir = &app_data_directory.display().to_string();
+    fs::create_dir_all(format!("{}", db_dir))?;
 
-    Ok(app_data_directory)
+    Ok(PathBuf::from(db_dir))
 }

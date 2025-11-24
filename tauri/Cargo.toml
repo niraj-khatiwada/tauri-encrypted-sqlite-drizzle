@@ -36,3 +36,9 @@ chrono = { version = "0.4.42", features = ["serde"] }
 tauri-plugin-fs = "2.4.4"
 base64 = "0.22.1"
 sqlparser = "0.59.0"
+keyring = { version = "3.6.3", features = [
+    "apple-native",
+    "windows-native",
+    "linux-native",
+    "sync-secret-service",
+] }

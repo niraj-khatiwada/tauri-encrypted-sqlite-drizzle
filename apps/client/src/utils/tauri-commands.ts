@@ -1,5 +1,9 @@
 import { core } from '@tauri-apps/api'
 
-export async function is_db_ready(): Promise<boolean> {
+export async function isDbReady() {
   return await core.invoke<Promise<boolean>>('is_db_ready')
+}
+
+export async function initDb(encryptionKey: string) {
+  return await core.invoke<Promise<void>>('init_db', { encryptionKey })
 }

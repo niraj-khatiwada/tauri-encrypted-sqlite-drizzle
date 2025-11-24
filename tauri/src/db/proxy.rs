@@ -135,7 +135,10 @@ pub async fn execute_single_sql(
         );
     }
 
-    let db = app_state.db.clone();
+    let db_ref = app_state.db.read().await;
+    let db = db_ref
+        .as_ref()
+        .ok_or("Database not initialized".to_string())?;
 
     let mut q = sqlx::query(query.sql.as_str());
     q = bind_params(q, &query.params);
@@ -153,7 +156,10 @@ pub async fn execute_batch_sql(
     #[cfg(debug_assertions)]
     log_sql_proxy(None, Some(&queries));
 
-    let db = app_state.db.clone();
+    let db_ref = app_state.db.read().await;
+    let db = db_ref
+        .as_ref()
+        .ok_or("Database not initialized".to_string())?;
 
     let mut tx: Transaction<'_, Sqlite> = db.pool.begin().await.map_err(|e| e.to_string())?;
 

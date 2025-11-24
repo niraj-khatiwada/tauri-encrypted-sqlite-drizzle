@@ -22,7 +22,7 @@ impl Database {
 
     pub async fn new(
         password: &str,
-        db_dir: &PathBuf,
+        db_dir: PathBuf,
         db_name: Option<&str>,
     ) -> Result<Self, String> {
         let db_name = db_name.unwrap_or(Self::DEFAULT_DB_NAME);
