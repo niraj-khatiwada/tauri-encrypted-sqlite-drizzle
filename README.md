@@ -29,3 +29,10 @@ bun dev
 ```
 bun tauri:build
 ```
+
+### Migrations
+1. Generate a new migration file when you change the db schema:
+```
+bun drizzle-kit generate
+```
+Migrations will automatically be applied when you run the app.
