@@ -7,7 +7,8 @@
     "tauri:build": "tauri build",
     "tauri:build:debug": "tauri build --debug",
     "build:apps": "bun run --filter client build",
-    "tsc:check": "tsc --noEmit --skipLibCheck"
+    "tsc:check": "tsc --noEmit --skipLibCheck",
+    "postinstall": "husky install"
   },
   "devDependencies": {
     "husky": "^8.0.1",
