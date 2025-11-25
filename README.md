@@ -1,5 +1,7 @@
 # Tauri Encrypted SQLite + Drizzle
-Using encrypted SQLite database in Tauri + Drizzle as an ORM and migration kit on the frontend.
+Using encrypted SQLite database in Tauri with Drizzle as an ORM and migration kit from the frontend.
+
+<img src="/assets/flowpart.png" style="width: 100%; object-fit: content;" />
 
 ### Tech Stack
 - Rust + Tauri 🦀
