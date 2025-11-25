@@ -14,6 +14,12 @@
   scroll-behavior: smooth;
 }
 
+input,
+textarea,
+[contenteditable] {
+  user-select: initial;
+}
+
 :root {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;

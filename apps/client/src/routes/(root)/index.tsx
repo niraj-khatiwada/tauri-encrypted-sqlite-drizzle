@@ -35,13 +35,15 @@ function App() {
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      addToDo(input, {
-        onSuccess() {
-          if (inputRef.current) {
-            inputRef.current.innerText = ''
-          }
-        },
-      })
+      if (input.trim().length > 0) {
+        addToDo(input, {
+          onSuccess() {
+            if (inputRef.current) {
+              inputRef.current.innerText = ''
+            }
+          },
+        })
+      }
     }
   }
 
@@ -50,7 +52,7 @@ function App() {
       <p className="opacity-80">Add New ToDo:</p>
       <Surface
         ref={inputRef}
-        className="flex flex-col gap-3 rounded-xl p-2"
+        className="flex flex-col gap-3 rounded-xl p-2 text-white"
         variant="secondary"
         suppressContentEditableWarning
         contentEditable
@@ -59,7 +61,9 @@ function App() {
         autoFocus
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-      />
+      >
+        &#8203;
+      </Surface>
       <Separator className="my-4" />
       <Todos />
     </div>
@@ -94,7 +98,7 @@ function Todos() {
             className="rounded-xl p-3 flex justify-between items-center my-2"
             variant="quaternary"
           >
-            <p className="whitespace-pre-wrap">{todo.title}</p>
+            <p className="whitespace-pre-wrap text-white">{todo.title}</p>
             <Button
               isIconOnly
               variant="ghost"
