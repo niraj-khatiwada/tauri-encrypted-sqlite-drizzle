@@ -30,7 +30,7 @@ pub async fn init_db(
         }
     }
 
-    let db = db::Database::new(encryption_key, app_state.db_dir.clone(), None).await?;
+    let db = db::Database::new(encryption_key, app_state.db_dir.clone()).await?;
     let migration =
         db::migration::Migration::new(db.get_pool().clone(), app_state.migration_dir.clone());
     migration.run().await?;

@@ -14,20 +14,14 @@ pub type DatabasePool = sqlx::Pool<DatabaseDialect>;
 
 pub struct Database {
     db_dir: PathBuf,
-    db_name: String,
     pool: DatabasePool,
 }
 
 impl Database {
     pub const DEFAULT_DB_NAME: &'static str = "app.db";
 
-    pub async fn new(
-        password: &str,
-        db_dir: PathBuf,
-        db_name: Option<&str>,
-    ) -> Result<Self, String> {
-        let db_name = db_name.unwrap_or(Self::DEFAULT_DB_NAME);
-        let db_url = db_dir.join(db_name);
+    pub async fn new(password: &str, db_dir: PathBuf) -> Result<Self, String> {
+        let db_url = db_dir.join(Self::DEFAULT_DB_NAME);
 
         let connect_options =
             SqliteConnectOptions::from_str(&db_url.to_str().ok_or("Invalid db path")?)
@@ -50,7 +44,6 @@ impl Database {
         Ok(Self {
             pool: pool,
             db_dir: db_dir,
-            db_name: String::from(db_name),
         })
     }
 
@@ -60,10 +53,6 @@ impl Database {
 
     pub async fn close_pool(&self) {
         self.pool.close().await
-    }
-
-    pub fn get_db_name(&self) -> String {
-        self.db_name.clone()
     }
 
     pub async fn is_ready(&self) -> bool {
