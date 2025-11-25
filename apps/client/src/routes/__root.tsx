@@ -42,12 +42,12 @@ function Reset() {
   const { mutate, isPending, error } = useMutation({
     mutationFn: resetDb,
     async onSettled() {
-      await queryClient.resetQueries({ queryKey: ['doesDbExist'] })
+      await queryClient.invalidateQueries({ queryKey: ['doesDbExist'] })
       await refetch()
       navigate({ to: '/auth' })
     },
     async onSuccess() {
-      queryClient.clear()
+      queryClient.resetQueries()
     },
   })
   return (
@@ -80,7 +80,7 @@ function Reset() {
                     variant="danger"
                     onPress={() => {
                       mutate(true, {
-                        onSuccess: () => {
+                        onSuccess() {
                           close()
                         },
                       })
@@ -144,7 +144,7 @@ function Reset() {
                       variant="secondary"
                       onPress={() => {
                         mutate(false, {
-                          onSuccess: () => {
+                          onSuccess() {
                             close()
                           },
                         })

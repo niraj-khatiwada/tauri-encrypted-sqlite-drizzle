@@ -8,6 +8,7 @@ import {
   doesDbExist as doesDbExistCommand,
   initDb,
 } from '~/utils/tauri-commands'
+import Logo from '../../logo.svg'
 
 export const Route = createFileRoute('/(root)/auth')({
   component: RouteComponent,
@@ -32,6 +33,7 @@ function RouteComponent() {
   })
   return (
     <div className="flex w-screen h-[80vh] flex-col gap-4 justify-center items-center">
+      <img src={Logo} alt="logo" width={200} />
       <form
         className="w-[300px] flex flex-col gap-1"
         onSubmit={(evt) => {
